@@ -2,7 +2,7 @@
 //
 // 設計重點：
 // 1. 頂層語句（top-level statements）只能存在「一個」檔案。為了讓同一天可以放多個獨立範例，
-//    每個範例都寫成 static class（見 SyntaxDemo.cs / OopDemo.cs），這裡用引數挑要跑哪一個。
+//    每個範例都寫成 static class（見 SyntaxDemo.cs / LambdaDemo.cs / OopDemo.cs），這裡用引數挑要跑哪一個。
 // 2. 這裡出現 await，代表編譯器會把整份檔案轉成一個 async Task Main 方法。
 //    這就是「頂層語句」的運作原理。
 // 3. Ctrl+C 不直接砍掉程式，而是走 CancellationToken，讓範例有機會把資源收乾淨。
@@ -12,6 +12,7 @@ using CSharpLearn.Day1;
 var demos = new (string Key, string Description, Func<CancellationToken, Task> Run)[]
 {
     ("syntax", "C# 特有語法", SyntaxDemo.RunAsync),
+    ("lambda", "Lambda 與閉包", LambdaDemo.RunAsync),
     ("oop", "物件導向", OopDemo.RunAsync),
 };
 

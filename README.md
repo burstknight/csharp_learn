@@ -41,6 +41,7 @@ dotnet build
 
 # 執行某一個範例
 dotnet run --project day1 -- syntax
+dotnet run --project day1 -- lambda
 dotnet run --project day1 -- oop
 dotnet run --project day2 -- async
 dotnet run --project day2 -- collector
@@ -69,6 +70,7 @@ dotnet build -c Release
 | 1 | [day1/01-csharp-syntax.md](day1/01-csharp-syntax.md) | `SyntaxDemo.cs` | 值型別／參考型別、nullable、pattern matching、record |
 | 1 | [day1/02-oop.md](day1/02-oop.md) | `OopDemo.cs` | 介面 vs 抽象類別、泛型、`IDisposable` |
 | 1 | [day1/03-wpf-tips.md](day1/03-wpf-tips.md) | — | WPF 專案設定與 MVVM 建議（不含可執行範例） |
+| 1 | [day1/04-lambdas-and-closures.md](day1/04-lambdas-and-closures.md) | `LambdaDemo.cs` | Lambda 語法、delegate、**閉包**、async lambda、變異、Expression tree |
 | 2 | [day2/01-async.md](day2/01-async.md) | `AsyncDemo.cs` | async/await、`ValueTask`、`Task.WhenAll`、`CancellationToken` |
 | 2 | [day2/02-channels-and-collector.md](day2/02-channels-and-collector.md) | `CollectorDemo.cs` | `System.Threading.Channels` 生產者/消費者與背壓 |
 | 3 | [day3/01-socket-and-framing.md](day3/01-socket-and-framing.md) | `EchoServerDemo.cs` | TCP stream、粘包、長度前綴 framing |

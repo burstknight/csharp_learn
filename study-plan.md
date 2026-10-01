@@ -46,14 +46,18 @@
 
 ---
 
-### Day 1 — 語法與物件導向（約 2 小時）
+### Day 1 — 語法、Lambda 與物件導向（約 2.5 小時）
 
 | 時間 | 內容 |
 | --- | --- |
-| 40 分 | 讀 [`day1/01-csharp-syntax.md`](day1/01-csharp-syntax.md)，跑 `dotnet run --project day1 -- syntax` |
-| 30 分 | **對付所有警告**：把 `SyntaxDemo.cs` 每個警告都修掉，並用註解寫下你改了什麼 |
-| 40 分 | 讀 [`day1/02-oop.md`](day1/02-oop.md)，跑 `dotnet run --project day1 -- oop` |
+| 30 分 | 讀 [`day1/01-csharp-syntax.md`](day1/01-csharp-syntax.md)，跑 `dotnet run --project day1 -- syntax` |
+| 25 分 | **對付所有警告**：把 `SyntaxDemo.cs` 每個警告都修掉，並用註解寫下你改了什麼 |
+| 50 分 | 讀 [`day1/04-lambdas-and-closures.md`](day1/04-lambdas-and-closures.md)，跑 `dotnet run --project day1 -- lambda` |
+| 30 分 | 讀 [`day1/02-oop.md`](day1/02-oop.md)，跑 `dotnet run --project day1 -- oop` |
 | 10 分 | 讀 [`day1/03-wpf-tips.md`](day1/03-wpf-tips.md) |
+
+> Lambda 這節刻意排在 Day 1，因為它是 Day 2（`async` lambda、LINQ）和 WPF（`Command`、事件）的共同前置。
+> 如果你對 C++/Python 的 lambda 已經熟，可以把時間壓到 30 分，但**第 3 節（閉包）和第 5 節（async lambda）一定要讀完**。
 
 **自我檢核**
 
@@ -61,6 +65,10 @@
 - [ ] `string` 與 `string?` 的差別我講得出來
 - [ ] `CS8600`／`CS8602`／`CS8618` 各自在什麼情況出現
 - [ ] 我知道 `record` 適合什麼情況、和 `class` 的差別
+- [ ] 我能說出 lambda 為什麼必須指定 `Func<>` 或 `Action<>`（或自訂 delegate）
+- [ ] **我知道為什麼 `for` 迴圈捕獲變數會印出 `3 3 3`，而 `foreach` 不會**
+- [ ] **我知道 `async` lambda 為什麼要回傳 `Task` 而不是 `T`**
+- [ ] 我知道 `async void` / `async Action` 呼叫後不會等
 - [ ] 我能說出什麼情況該用 `interface`、什麼情況該用 `abstract class`
 - [ ] 我知道 `IDisposable` 為什麼需要 `using`
 
@@ -138,11 +146,13 @@
 
 | 天 | 內容 | 省略 |
 | --- | --- | --- |
-| Day 1 | `00-tooling.md`（只看 Solution/csproj、TargetFramework、NuGet 三節）+ `day1/01-csharp-syntax.md` + `day1/02-oop.md` 的介面與泛型 | WPF 建議、OOP 進階 |
+| Day 1 | `00-tooling.md`（只看 Solution/csproj、TargetFramework、NuGet 三節）+ `day1/01-csharp-syntax.md` + `day1/04-lambdas-and-closures.md` 的第 1、3、5 節（語法、閉包、async lambda）+ `day1/02-oop.md` 的介面與泛型 | WPF 建議、OOP 進階、變異、Expression tree |
 | Day 2 | `day2/01-async.md` + `day2/02-channels-and-collector.md` 的 Channel 章節 | `ValueTask`、`ConfigureAwait` 細節 |
 | Day 3 | `day3/01-socket-and-framing.md` + `day3/02-modbus-tcp.md` + `day3/03-mqtt.md`；`day4/01-threading.md` 只讀 CPU vs I/O bound 與 `lock`/`Interlocked` | HttpClient、執行緒池細節、版本差異 |
 
 **取捨理由**：語法 → 非同步 → framing/Modbus/MQTT 這條線是 PLC 工作的核心路徑。HttpClient 與版本差異用到再查，`00-tooling.md` 是查得到的文件，不需要記。
+
+⚠ **Lambda 不可壓縮。** 閉包和 async lambda 這兩節是整份教材最容易寫錯的地方，而且錯誤在編譯器幫你抓的情況下會直接變成 runtime bug。壓縮版只省掉變異、Expression tree、效能那幾節。
 
 ---
 
@@ -152,6 +162,7 @@
 
 - [ ] 看到警告就懂，`Nullable` 開著不會怕
 - [ ] 寫出正確的 `async` 方法，並知道絕不用 `.Result`
+- [ ] 知道 lambda 捕獲的是變數而不是值，能避開 `for` 迴圈的 `3 3 3` 問題
 - [ ] 自己設計一個 framing protocol 處理 TCP 粘包
 - [ ] 讀得懂 Modbus/TCP 的十六進位封包
 - [ ] 用 `Channel` 寫出一個不會把記憶體吃爆的採集 loop
