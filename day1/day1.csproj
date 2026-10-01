@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    TargetFramework / Nullable / ImplicitUsings 都由上層 Directory.Build.props 統一提供，
+    這裡只寫這個專案「特有的」設定。實務上共用的東西往上抽，專案檔就會乾淨很多。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CSharpLearn.Day1</RootNamespace>
+  </PropertyGroup>
+
+</Project>

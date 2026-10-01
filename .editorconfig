@@ -1,0 +1,38 @@
+# .editorconfig 會被 Roslyn / OmniSharp 讀取，用來統一格式與程式碼風格建議。
+# 完整清單在 VS 內建範本：「外部工具 > 程式碼編輯器 > Code Style > 一般 > 產生 .editorconfig 檔案」。
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,xml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false   # Markdown 換行有意義（兩格結尾代表斷行）
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# C# 專屬風格。標示為 suggestion，表示只是建議、不會擾動 build。
+# 實務上 C# 習慣省略 System. 前綴（靠 using 與隱含 using 讓型別直接可用）。
+
+# 不要寫 System.Console.WriteLine / this.field / Nullable<int>
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# 建議的括號與命名空間寫法
+csharp_prefer_braces = true:suggestion
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# 想讓 build 時就跳出風格警告（IDE 開頭的代碼），改這裡並把
+# Directory.Build.props 的 EnforceCodeStyleInBuild 設為 true

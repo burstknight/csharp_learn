@@ -1,0 +1,27 @@
+<Project>
+
+  <!--
+    這個檔案會自動套用到底下「所有」子目錄的專案，不必在每個 csproj 重複設定。
+    實務上公司會把 Nullable、ImplicitUsings、版本號、WarningLevel 統一放在這裡。
+    教學重點：改這一個檔案，四個專案同時生效。
+  -->
+  <PropertyGroup>
+    <!-- 目標框架。LTS 版本，支援到 2028-11（以 Microsoft 官方支援矩陣為準）。 -->
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- 可空參考型別：string 與 string? 區分開來，編譯器會檢查可能為 null 的用法。 -->
+    <Nullable>enable</Nullable>
+
+    <!-- 自動帶入常用 using（System、System.Linq、System.Threading 等），少打一堆 using。 -->
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!--
+      分析器等級。latest 會跟著 SDK 更新，開啟更多建議。
+      預設「不」把程式碼風格建議升級成 build 警告，避免第一次 build 看到一堆黃字；
+      想練習的話可以打開 EnforceCodeStyleInBuild。
+    -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

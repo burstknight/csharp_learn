@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CSharpLearn.Day3</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      MQTT 用第三方套件。整個 repo 只有 day3 需要 MQTT，所以套件只加在 day3。
+      版本要釘死確切數字，不要用 5.* 這種浮動版本——浮動版本會讓兩台機器裝到不同版本，
+      是 CI/部署最常見的失敗原因。
+      若這裡 restore 失敗（找不到版本），請到 https://www.nuget.org/packages/MQTTnet 查最新版本。
+    -->
+    <PackageReference Include="MQTTnet" Version="5.2.0.1603" />
+    <PackageReference Include="MQTTnet.Server" Version="5.2.0.1603" />
+  </ItemGroup>
+
+</Project>
