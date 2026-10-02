@@ -3,7 +3,8 @@
 > 範例：[`ThreadingDemo.cs`](ThreadingDemo.cs)
 > 跑法：`dotnet run --project day4 -- threading`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。輸出裡的時間數字會依你的機器而不同。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。輸出裡的時間數字會依你的機器而不同。
+另外第 4 節的 `Parallel.For` **結果數字刻意不正確** —— 那是在示範共用變數的競態。
 
 > 這節對你的意義：PLC 採集程式幾乎一定有多執行緒需求。**懂 async 不代表懂執行緒競爭** —— 這兩件事要分開學。
 

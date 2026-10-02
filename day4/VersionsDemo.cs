@@ -5,7 +5,7 @@ namespace CSharpLearn.Day4;
 
 // Day 4 第二支範例：.NET 版本差異 + C# 語言版本差異。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
 //
 // 這支範例刻意示範「編譯期」和「執行期」是兩件事：
 //   * TFM / LangVersion 決定編譯器允許你寫什麼語法
@@ -21,7 +21,7 @@ public static class VersionsDemo
         Section4_PrimaryConstructor();
         await Section5_ParamsCollection(ct);
         Section6_BackingFieldKeyword();
-        await Section7_NullConditionalAssignment();
+        await Section7_NullConditionalAssignment(ct);
         Section8_ExtensionMembers();
 
         Console.WriteLine("以上每個小節都標註了引入它的語言版本。");
@@ -179,14 +179,18 @@ public static class VersionsDemo
         // 舊寫法：只支援陣列
         Log("array", "第一則", "第二則", "第三則");
 
-        // C# 13：params 可以是任何可_collection_expression_ 型別
+        // C# 13：params 可以是任何「可用 collection expression 轉換」的型別。
+        // ReadOnlySpan<string> 可以，但 List<string> 不行 —— 它沒有隱含的 span 轉換。
         LogSequence("span", ["A", "B", "C"]);
-        LogSequence("list", new List<string> { "X", "Y" });
+
+        // 所以 List 要走 params string[]（舊寫法）或 params IEnumerable<string>。
+        // 這裡示範兩者的差別：params 陣列在「沒有引數」時會配置一個空陣列。
+        LogEnumerable("list", new List<string> { "X", "Y" });
 
         // 實際用途：params 搭配來源生成器、記錄參數
         var report = new SensorReport("Line1", "週報",
             new SensorSummary("Temp", 25.5),
-            new SensorSummary("Flow", 120.0),
+            new SensorSummary("Flow", 120.0)
         );
 
         foreach (var item in report.Items)
@@ -210,6 +214,11 @@ public static class VersionsDemo
     private static void LogSequence(string source, params ReadOnlySpan<string> entries)
     {
         Console.WriteLine($"    [{source}] {entries.Length} 則（ReadOnlySpan，不配置陣列）");
+    }
+
+    private static void LogEnumerable(string source, params IEnumerable<string> entries)
+    {
+        Console.WriteLine($"    [{source}] {entries.Count()} 則（IEnumerable，可以接受 List）");
     }
 
     // ── 6. field 關鍵字 ─────────────────────────────────────────────
@@ -256,40 +265,48 @@ public static class VersionsDemo
         // C# 14：直接把 null 檢查和賦值合成一句
         registry.Primary?.Port = 1502;
 
-        Console.WriteLine($"  registry.Primary?.Port = 1502 → 實際: {registry.Primary?.Port}");
+        Console.WriteLine($"  registry.Primary?.Port = 1502 → 實際: {Format(registry.Primary?.Port)}");
         Console.WriteLine("  （Primary 是 null，所以 ?. 短路，什麼都沒做，也沒有例外）");
         Console.WriteLine();
 
         registry.Primary = new DeviceConfig { Name = "Main", Port = 502 };
         registry.Primary?.Port = 1502;
-        Console.WriteLine($"  有實體時: {registry.Primary?.Port}");
+        Console.WriteLine($"  有實體時: {Format(registry.Primary?.Port)}");
         Console.WriteLine();
 
         // ??= 早就有，但 ?.= 是新的
         var fresh = new DeviceRegistry();
         fresh.Primary ??= new DeviceConfig { Name = "Fallback" };   // C# 2.0 就有
         fresh.Primary?.Name = "Renamed";                            // C# 14 新增
-        Console.WriteLine($"  ??= + ?.= 結果: {fresh.Primary?.Name}");
+        Console.WriteLine($"  ??= + ?.= 結果: {Format(fresh.Primary?.Name)}");
         Console.WriteLine();
         Console.WriteLine("  ⚠ 讀取仍然要用 ?.：");
-        Console.WriteLine("    int? port = registry.Primary?.Port;   ← 得到 int?");
+        Console.WriteLine("    int? port = registry.Primary?.Port;   ← 得到 int?，可能是 null");
         Console.WriteLine("    int port = registry.Primary.Port;    ← ⚠ 還是會有 CS8602");
+        Console.WriteLine();
+        Console.WriteLine("  ⚠ int? 插值成字串時 null 會變成空字串，不是 \"null\"，");
+        Console.WriteLine("    除錯時很容易看漏。所以上面用 Format() 把它印成 (null)。");
         Console.WriteLine();
 
         await Task.CompletedTask;
     }
 
+    private static string Format(int? value) => value?.ToString() ?? "(null)";
+
+    private static string Format(string? value) => value ?? "(null)";
+
     // ── 8. Extension members ─────────────────────────────────────────
     private static void Section8_ExtensionMembers()
     {
         Console.WriteLine("--- 8. extension 成員（C# 14 / .NET 10）---");
-        Console.WriteLine("  ⚠ 這是最新的語法，本 repo 無法編譯驗證。");
-        Console.WriteLine("     若編譯失敗請對照 Microsoft 官方文件。");
+        Console.WriteLine("  這是 C# 14 的新語法，需要編譯器 14.0 以上（.NET 10 SDK）。");
+        Console.WriteLine("  ⚠ 換成舊 SDK 會直接編譯失敗 —— 這就是版本差異最實際的例子。");
         Console.WriteLine();
 
         int[] samples = [100, 102, 98, 101];
         Console.WriteLine($"  IsEmpty: {samples.IsEmpty()}");
-        Console.WriteLine($"  Between(99, 102): {samples.Between(99, 102)}");
+        Console.WriteLine($"  全部落在 [98, 102]: {samples.Between(98, 102)}");
+        Console.WriteLine($"  全部落在 [99, 102]: {samples.Between(99, 102)}  ← 有一筆 98 超出就 false");
         Console.WriteLine();
 
         Console.WriteLine("  舊寫法：public static class X { public static bool IsEmpty<T>(this IEnumerable<T> s) ... }");
@@ -299,7 +316,7 @@ public static class VersionsDemo
         Console.WriteLine("        extension<T>(IEnumerable<T> source)");
         Console.WriteLine("        {");
         Console.WriteLine("            public bool IsEmpty() => !source.Any();");
-        Console.WriteLine("            public bool Between(int lo, int hi) => ...");
+        Console.WriteLine("            public bool Between(T lo, T hi) => ...");
         Console.WriteLine("        }");
         Console.WriteLine("    }");
         Console.WriteLine();
@@ -351,15 +368,27 @@ internal sealed class SensorReport
 // ── Section 6 / 7 用的型別 ──────────────────────────────────────────
 internal sealed class DeviceConfig
 {
-    private string _name = "";
+    // ⚠ 這裡「故意」不宣告 _name / _port 兩個欄位。
+    //
+    //   C# 14 的 field 關鍵字會在編譯器需要時自動產生一個同型別的 private backing field。
+    //   如果你手寫 _name / _port，compiler 就不會產生，`field` 會去抓你宣告的那個。
+    //   結果就是：手寫的欄位只被指派、從沒被讀取 → 編譯器警告 CS0414，
+    //   而且 `field` 的初始值沒有被設定 → 警告 CS9264。
+    //
+    //   正確做法：刪掉手寫欄位，初始值直接透過屬性設定器指派，
+    //   這樣會走 setter 的驗證邏輯（Trim / 範圍檢查），而且只有一個欄位。
+
+    public DeviceConfig()
+    {
+        Name = "Line1.PLC";
+        Port = 502;
+    }
 
     public string Name
     {
         get => field;                        // C# 14 backing field
         set => field = value.Trim();
     }
-
-    private int _port = 502;
 
     public int Port
     {

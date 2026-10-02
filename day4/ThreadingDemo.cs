@@ -6,7 +6,7 @@ namespace CSharpLearn.Day4;
 
 // Day 4 第一支範例：執行緒、鎖、Interlocked、Parallel、Process。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
 
 public static class ThreadingDemo
 {
@@ -194,15 +194,19 @@ public static class ThreadingDemo
                 InterlockedMax(ref peak, now);
 
                 await Task.Delay(50, ct);        // 模擬通訊
-
-                Interlocked.Decrement(ref current);
-
-                // ⚠ 這裡不用 SafeWrite 是故意的：想讓你看到輸出交錯。
-                // 實際程式裡寫 log 一定要有鎖。
             }
             catch (Exception ex) when (ex is IOException or TimeoutException)
             {
                 SafeWrite($"  設備 {id} 讀取失敗：{ex.Message}");
+            }
+            finally
+            {
+                // ⚠ 這兩行「一定」要在 finally 裡。少了 Release()，
+                //    配額會被永久洩漏：前 4 台跑完後 current 永遠不會回來，
+                //    第 5 台開始 WaitAsync 永遠等不到 → 整個 Task.WhenAll 死鎖。
+                //    這正是下面那句話講的事情 —— 而且是實際會發生的 bug。
+                Interlocked.Decrement(ref current);
+                semaphore.Release();
             }
         }
 
@@ -217,6 +221,9 @@ public static class ThreadingDemo
 
         Console.WriteLine("  關鍵：Release() 一定要在 finally 裡。");
         Console.WriteLine("  否則任何例外都會永久洩漏一個配額，最後所有工作都卡住。");
+        Console.WriteLine("  （順帶一提：如果把上面 finally 裡的 Release() 刪掉，");
+        Console.WriteLine("   這支範例會在讀完 4 台之後**永久死鎖**，程式不會結束。");
+        Console.WriteLine("   這是本節最值得記住的一件事。）");
         Console.WriteLine();
     }
 

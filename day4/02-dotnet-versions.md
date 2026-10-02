@@ -3,7 +3,7 @@
 > 範例：[`VersionsDemo.cs`](VersionsDemo.cs)
 > 跑法：`dotnet run --project day4 -- versions`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。
 ⚠ **版本支援期限、語言特性細節請以 Microsoft 官方文件為準。** 本文件的月份是概略描述，實際日期請查官方支援矩陣。
 
 > 這節的實務價值：**看懂文件時不會把不同版本的說法搞混。** 很多教學是 .NET Framework 時代的，有些是 .NET 6/7 的，還有些是 .NET 9/10 的。API 名字很像但行為不同。
