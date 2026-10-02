@@ -1,12 +1,12 @@
 # 學習計畫
 
-目標：**3–4 天，每天 1–2 小時**，把 C# / .NET 的手感找回来，能開始新工作。
+目標：**3–4 天，每天 1–2 小時**，把 C# / .NET 的手感找回來，能開始新工作。
 
 ## 使用方式
 
 - 每天照著下面的表走，**先讀教材再跑範例**。
 - 跑完範例後，對照該天的〈自我檢核〉逐條打勾。**沒把握的條目就是你要重讀的段落。**
-- 本 repo 的範例未經本機編譯驗證（撰寫環境沒有 .NET SDK），所以「能不能跑」本身就是檢核的一部分。跑不起來很正常，把錯誤訊息讀懂就是學習。
+- 本 repo 的 15 支範例都已經用 .NET 10 SDK 編譯並實跑驗證過（`dotnet build CSharpLearn.sln` 0 errors，15 支 demo 全部正常結束）。不過換機器、換 SDK 版本或改動範例之後，「能不能跑」仍然是檢核的一部分 —— 讀懂錯誤訊息就是學習。
 
 ## 為什麼是這些內容
 
@@ -133,10 +133,36 @@
 - [ ] 我知道 ThreadPool 是什麼、為什麼不該自己 `new Thread`
 - [ ] CPU-bound 和 I/O-bound 的處理方式差在哪裡
 - [ ] `lock`、`Interlocked`、`SemaphoreSlim` 各自解決什麼問題
+- [ ] **我知道 `SemaphoreSlim.Release()` 為什麼一定要在 `finally` 裡**（漏掉會讓程式永久死鎖，`threading` 範例第 4 節可以親自驗證）
 - [ ] 我什麼時候該開一個 `Process`（而不是 Thread）
 - [ ] .NET 8／9／10 的生命週期差異，以及 LTS／STS 的差別
 - [ ] 我知道 C# 語言版本和 TargetFramework 是獨立的
 - [ ] 我能說出 `global.json` 在解決什麼問題
+
+---
+
+## 選讀 bonus：Day 5 — Rust 觀念對照到 C# 設計
+
+**這一天不在 4 天／3 天主線裡，跳過完全不影響完成度。**
+只有在你已經會 Rust、想搞清楚「C# 少了哪一層保護、要自己補哪條紀律」時才值得看。
+約 1.5 小時，離線可跑，零外部相依。
+
+| 時間 | 內容 |
+| --- | --- |
+| 25 分 | 讀 [`day5/01-rust-to-csharp.md`](day5/01-rust-to-csharp.md) 的對照表 + 所有權章節，跑 `dotnet run --project day5 -- ownership` |
+| 25 分 | 讀借用章節，跑 `dotnet run --project day5 -- borrowing`（含 `Span<T>` 與 boxing 的實際量測） |
+| 25 分 | 讀錯誤處理章節，跑 `dotnet run --project day5 -- errors` |
+| 20 分 | 讀 struct 章節，跑 `dotnet run --project day5 -- struct` |
+
+**自我檢核**
+
+- [ ] 我能說出 Rust 用 move／borrow 在編譯期保證了哪四件事
+- [ ] 我知道 `using` 對應 Rust 的 `drop`，而 `await using` 是 C# 特有的（非同步 drop）
+- [ ] 我知道 `readonly struct` **不等於** `&T`（前者每次呼叫都複製，後者才是借用）
+- [ ] 我知道 `Span<T>` 為什麼不能跨 `await`、不能當欄位，以及該用什麼取代
+- [ ] 我能說出什麼情況該用 `TryXxx`、什麼情況該讓例外丟出去
+- [ ] 我知道 `Task.WhenAll` 裡某個 task 失敗時，其他 task 會怎樣
+- [ ] 我知道 C# 沒有 sum type，要型別安全該用 `sealed class` 階層
 
 ---
 

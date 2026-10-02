@@ -7,7 +7,7 @@
 ## 目錄結構
 
 ```
-CSharpLearn.sln          四個專案的 solution（OmniSharp / VS 需要它才能提供 IntelliSense）
+CSharpLearn.sln          五個專案的 solution（OmniSharp / VS 需要它才能提供 IntelliSense）
 Directory.Build.props    共用設定：TargetFramework、Nullable、ImplicitUsings
 .editorconfig            格式與程式碼風格
 00-tooling.md            SDK、專案、NuGet／套件管理
@@ -16,6 +16,7 @@ day1/                    語法、物件導向、WPF 建議
 day2/                    非同步、取消、Channels
 day3/                    Socket framing、Modbus/TCP、MQTT、HttpClient
 day4/                    執行緒／行程、.NET 版本差異
+day5/                    選讀 bonus：Rust 的所有權／借用／錯誤處理／struct 對照到 C# 設計
 ```
 
 ## 環境需求
@@ -27,8 +28,11 @@ day4/                    執行緒／行程、.NET 版本差異
 dotnet --version    # 確認 SDK 存在
 ```
 
-> 本 repo 的檔案是在**沒有安裝 .NET SDK 的機器**上撰寫的，因此範例程式未經過編譯驗證。
-> 請用下面的指令在自己的機器上確認。第一次 build 出現黃色警告是預期中的，見 [`00-tooling.md` 的〈可空參考型別〉](00-tooling.md#可空參考型別)。
+> 本 repo 的 15 支範例都已用 **.NET 10 SDK** 編譯並實際執行驗證過：
+> `dotnet build CSharpLearn.sln` 為 0 errors，15 支 demo 全部正常結束。
+> 刻意保留的 4 個 nullable 警告（`day1`）是教材反例，見 [`00-tooling.md` 的〈可空參考型別〉](00-tooling.md#可空參考型別)。
+>
+> 但換機器、換 SDK 版本或改動範例之後，「能不能跑」仍然是你的責任 —— 請用下面的指令自己確認一次。
 
 ## 常用指令
 
@@ -51,6 +55,12 @@ dotnet run --project day3 -- mqtt
 dotnet run --project day3 -- webapi
 dotnet run --project day4 -- threading
 dotnet run --project day4 -- versions
+
+# day5 是選讀 bonus，不在 4 天主線裡
+dotnet run --project day5 -- ownership
+dotnet run --project day5 -- borrowing
+dotnet run --project day5 -- errors
+dotnet run --project day5 -- struct
 
 # 不帶參數會列出該天所有可用的 demo
 dotnet run --project day1
@@ -79,10 +89,16 @@ dotnet build -c Release
 | 3 | [day3/04-webapi.md](day3/04-webapi.md) | `WebApiDemo.cs` | `HttpClient`、`System.Text.Json`、Minimal API |
 | 4 | [day4/01-threading.md](day4/01-threading.md) | `ThreadingDemo.cs` | ThreadPool、`lock`、`Interlocked`、`Parallel`、`Process` |
 | 4 | [day4/02-dotnet-versions.md](day4/02-dotnet-versions.md) | `VersionsDemo.cs` | .NET 8/9/10、C# 12/13/14、`global.json` |
+| 5 ★ | [day5/01-rust-to-csharp.md](day5/01-rust-to-csharp.md) | `OwnershipDemo.cs`、`BorrowingDemo.cs`、`ErrorsDemo.cs`、`StructDemo.cs` | **選讀 bonus**：Rust 的所有權／借用／`Result`／enum 對照到 C# 設計 |
+
+★ `day5` 不在 4 天主線裡。它假設你已經會 Rust，想知道 C# 怎麼處理同樣的問題。
+只想恢復 C# 手感的話跳過這裡，不會有任何影響。
 
 ## 讀教材前的提醒
 
-1. **編譯警告是教材的一部分。** `Nullable=enable` 開著，範例裡刻意留了會產生警告的反例，並在註解中標明警告代碼。請先讀警告再改。
+1. **編譯警告是教材的一部分。** `Nullable=enable` 開著，`day1` 刻意留了 4 個 nullable 警告（`SyntaxDemo` 2 個、`LambdaDemo` 3 個，合計見 `dotnet build` 輸出），並在註解中標明警告代碼。請先讀警告再改。`day1` 以外的所有專案應該是 0 警告。
 2. **不要跳過 `.Result` 的示範。** `day2` 有一個刻意讓程式卡住的例子，這是 C# 裡最常見的錯誤，親眼看到比被告知有用。
 3. **`day3` 的 MQTT 範例會在本機 1883 port 開一個 broker。** 如果那個 port 已被占用（Docker、mosquitto），範例會直接失敗，這是預期行為。
-4. 版本與套件資訊會過期。教材內所有「版本」「支援期限」都請以官方文件為準。
+4. **`day3` 的 webapi 範例需要網路，但不是強制。** 它先試 `jsonplaceholder.typicode.com`；連不上時會自動改用程式內的 `HttpListener` 假 API，兩條路徑輸出格式一致。
+5. **`day4` 的 threading 範例第 5 節的數字「看起來不對」是故意的** —— 那是在示範共用變數的競態。
+6. 版本與套件資訊會過期。教材內所有「版本」「支援期限」都請以官方文件為準。
