@@ -3,7 +3,7 @@
 > 範例：[`AsyncDemo.cs`](AsyncDemo.cs)
 > 跑法：`dotnet run --project day2 -- async`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。
 
 如果你只能讀一節，讀〈3. 絕對不要用 `.Result`〉。
 

@@ -5,7 +5,7 @@ namespace CSharpLearn.Day2;
 
 // Day 2 第一支範例：async / await、取消、例外處理。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
 //
 // 這支範例的所有延遲都是「模擬 I/O 等待」，不需要網路或設備，離線可跑。
 
@@ -33,8 +33,15 @@ public static class AsyncDemo
     {
         Console.WriteLine("--- 1. await 等待時不會佔住執行緒 ---");
 
-        ThreadPool.GetAvailableThreads(out var available);
+        // ⚠ .NET 10 改了簽章：GetAvailableThreads 現在要「兩個」out 參數。
+        //   舊的單參數版本（out int workerThreads）被標示為過時，
+        //   在 .NET 10 只剩兩個 out 的版本：
+        //       static void GetAvailableThreads(out int workerThreads, out int completionPortThreads)
+        //   第二個參數是 I/O completion port 執行緒數量。
+        //   只寫一個 out 會得到 ⚠ CS7036「未提供必要參數 'completionPortThreads' 的引數」。
+        ThreadPool.GetAvailableThreads(out var available, out var ioCompletion);
         Console.WriteLine($"  ThreadPool 目前可用執行緒: {available}");
+        Console.WriteLine($"  I/O completion port 執行緒: {ioCompletion}");
         Console.WriteLine("  await 遇到未完成的 I/O 時會把執行緒還給 ThreadPool，");
         Console.WriteLine("  等 I/O 完成後再排回來繼續往下執行。執行緒沒有被『睡著』卡住。");
         Console.WriteLine();

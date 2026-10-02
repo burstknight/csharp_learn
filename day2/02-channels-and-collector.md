@@ -4,7 +4,7 @@
 > 跑法：`dotnet run --project day2 -- collector`
 > 上一節：[`01-async.md`](01-async.md)
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。
 
 PLC 採集程式的核心形狀是「**不停生產、不停消費，而且兩邊速度不一樣**」。這節就是解決那個落差。
 

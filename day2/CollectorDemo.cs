@@ -10,7 +10,7 @@ namespace CSharpLearn.Day2;
 //   bounded Channel 有容量上限，滿了之後可以選擇「等」（背壓）或「丟」（DropOldest）。
 //   這是工業採集程式的必備特性。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
 
 /// <summary>一筆採集到的資料。</summary>
 internal readonly record struct TagSample(long Tick, string Tag, double Value, DateTimeOffset Timestamp);
