@@ -3,7 +3,8 @@
 > 範例：[`WebApiDemo.cs`](WebApiDemo.cs)
 > 跑法：`dotnet run --project day3 -- webapi`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。而且**這個範例需要網路** —— 會打 `jsonplaceholder.typicode.com`。離線時會印出連線失敗訊息，那是預期行為。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。會先試 `jsonplaceholder.typicode.com`；連不上（離線、被防火牆擋）
+時會自動改用程式內的 `HttpListener` 假 API 跑完相同流程，**兩條路徑輸出格式一致**。
 
 ---
 

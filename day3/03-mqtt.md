@@ -3,7 +3,8 @@
 > 範例：[`MqttDemo.cs`](MqttDemo.cs)
 > 跑法：`dotnet run --project day3 -- mqtt`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK，也沒有 MQTTnet 套件）。API 寫法參照 MQTTnet 官方 Samples 目錄。
+✅ 已用 .NET 10 SDK + MQTTnet 5.2.0.1603 編譯並實跑驗證過。注意 MQTTnet 5 把 `MqttTopicFilterBuilder`
+和 `MqttProtocolVersion` 搬到了 `MQTTnet.Formatter` 命名空間，舊版範例常見的 `MQTTnet.Client` 已不存在。
 
 > MQTT 是 IoT / 工業資料傳遞最常用的協定。工作上如果是採集資料上雲、或設備之間溝通，MQTT 幾乎是標配。
 

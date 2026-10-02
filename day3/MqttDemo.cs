@@ -6,9 +6,19 @@
 //     v4：MqttApplicationMessage.Payload 是 byte[]
 //     v5：改成 ReadOnlySequence<byte>，請用 ConvertPayloadToString() 取值
 //     搜尋教學時請先確認版本 —— 這是 MQTTnet 最容易踩到的坑。
+//
+// ⚠ 5.x 的命名空間也扁平化了。沒有 MQTTnet.Client / MQTTnet.Server.Options 這些子命名空間：
+//     MQTTnet                 → MqttClientFactory、MqttClientOptionsBuilder、MqttApplicationMessageBuilder、
+//                               MqttClientSubscribeOptionsBuilder、MqttTopicFilterBuilder、IMqttClient…
+//     MQTTnet.Protocol        → MqttQualityOfServiceLevel、MqttRetainHandling…
+//     MQTTnet.Formatter       → MqttProtocolVersion
+//     MQTTnet.Server          → MqttServerFactory、MqttServerOptionsBuilder（在 MQTTnet.Server 套件裡）
+//     寫 using MQTTnet.Client; 會得到 ⚠ CS0234「命名空間 'MQTTnet' 中沒有類型或命名空間名稱 'Client'」。
+//     另外 QoS 不是直接設在 subscribe builder 上，而是設在「topic filter builder」裡，
+//     所以要寫成 WithTopicFilter(f => f.WithTopic(...).WithAtLeastOnceQoS())。
 using System.Globalization;
 using MQTTnet;
-using MQTTnet.Client;
+using MQTTnet.Formatter;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
 
@@ -18,7 +28,7 @@ namespace CSharpLearn.Day3;
 //
 // 這樣你不需要先裝 Mosquitto 或架一台 broker，就能離線跑完整個發布／訂閱流程。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK，也沒有安裝 MQTTnet 套件）。
+// ✅ 本檔案已用 .NET 10 SDK + MQTTnet 5.2.0.1603 編譯並實跑驗證過。
 //    API 寫法參照 MQTTnet 官方的 Samples/Client 與 Samples/Server 目錄。
 //    若編譯失敗，先確認 day3.csproj 的套件是 5.x，並到
 //    https://www.nuget.org/packages/MQTTnet 查最新版本。
@@ -98,11 +108,14 @@ public static class MqttDemo
             await subscriber.ConnectAsync(subscriberOptions, ct);
             Console.WriteLine("  [subscriber] 已連線（client id: csharp-learn-subscriber）");
 
-            var subscribeOptions = subscriberFactory
-                .CreateSubscribeOptionsBuilder()
-                .WithTopicFilter(Topic)
-                .WithAtLeastOnceQoS()      // QoS 1
-                .Build();
+// ⚠ 這裡的 QoS 要設在「topic filter builder」上，不是 subscribe builder 上。
+//   直接寫 .WithAtLeastOnceQoS() 會得到 ⚠ CS1061（builder 上沒有這個成員）。
+var subscribeOptions = subscriberFactory
+    .CreateSubscribeOptionsBuilder()
+    .WithTopicFilter(f => f
+        .WithTopic(Topic)
+        .WithAtLeastOnceQoS())    // QoS 1
+    .Build();
 
             await subscriber.SubscribeAsync(subscribeOptions, ct);
             Console.WriteLine($"  [subscriber] 已訂閱 {Topic}（QoS 1）");

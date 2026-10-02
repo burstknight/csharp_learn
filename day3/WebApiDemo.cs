@@ -1,24 +1,73 @@
 // HttpClient 在 System.Net.Http —— console 專案的 ImplicitUsings 有包含這個。
 // GetFromJsonAsync / PostAsJsonAsync 是 System.Net.Http.Json 的擴充方法，要自己 using。
+// 離線 fallback 用的 HttpListener 在 System.Net。
+using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace CSharpLearn.Day3;
 
 // Day 3 第四支範例：HttpClient 與 System.Text.Json。
 //
-// ⚠ 這個範例需要網路連線才能完整跑完。離線時它會印出錯誤訊息然後結束 —— 那是預期行為。
-//    想離線驗證，可以把 BaseUrl 換成自己開的本機服務。
+// 這個範例**優先打公開的測試 API**（https://jsonplaceholder.typicode.com），讓你看到真實的
+// HTTP 行為。若連不上（離線、被防火牆擋、網路中斷），會自動改用程式內開在本機的
+// HttpListener 假 API 跑完全相同的流程 —— 所以離線也跑得起來，輸出格式一致。
 
 public static class WebApiDemo
 {
     // 公開的測試 API，不需要註冊。
-    private const string BaseUrl = "https://jsonplaceholder.typicode.com";
+    private const string ExternalBaseUrl = "https://jsonplaceholder.typicode.com";
 
     public static async Task RunAsync(CancellationToken ct)
     {
         Console.WriteLine("--- HttpClient ---");
         Console.WriteLine();
 
+        await RunAgainstExternalOrFallbackAsync(ct);
+    }
+
+    private static async Task RunAgainstExternalOrFallbackAsync(CancellationToken ct)
+    {
+        // 先試外部站台。給它 20 秒：很多網路下第一次連線會先嘗試 IPv6 再 fallback 到 IPv4，
+        // 這段來回可能吃掉好幾秒，timeout 設太短會誤判成「連不上」而永遠走不到外部路徑。
+        using var probeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        probeCts.CancelAfter(TimeSpan.FromSeconds(20));
+
+        try
+        {
+            using var probe = new HttpClient
+            {
+                BaseAddress = new Uri(ExternalBaseUrl),
+                Timeout = TimeSpan.FromSeconds(20),
+            };
+
+            using var resp = await probe.GetAsync("/posts/1", probeCts.Token);
+            resp.EnsureSuccessStatusCode();
+
+            Console.WriteLine($"  使用外部 API: {ExternalBaseUrl}");
+            Console.WriteLine();
+
+            // 外部可用 → 用外部跑完整流程。
+            using var client = CreateClient(new Uri(ExternalBaseUrl));
+            await RunLessonAsync(client, ct);
+            return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            Console.WriteLine($"  外部 API 連不上（{ex.GetType().Name}），改用本機假 API。");
+            Console.WriteLine();
+        }
+
+        // 外部不可用 → 在本機開一個假 API，內容跟 jsonplaceholder 一模一樣。
+        await using var fake = FakeJsonPlaceholder.Start();
+
+        using var localClient = CreateClient(fake.BaseAddress);
+        await RunLessonAsync(localClient, ct);
+    }
+
+    private static HttpClient CreateClient(Uri baseAddress)
+    {
         // ⚠ 重點 1：HttpClient 應該「重複使用同一個實例」。
         //
         //    為什麼不能在迴圈裡 new？
@@ -28,15 +77,29 @@ public static class WebApiDemo
         //
         //    console app 沒有 DI 容器，用一個 static 欄位就夠了。
         //    ASP.NET Core 請用 IHttpClientFactory（見本檔案下方說明）。
-        using var client = new HttpClient
+        //
+        //    這裡因為是教學範例，整段結束就結束，所以用 using 沒問題；
+        //    真正的長駐服務應該是 static readonly HttpClient，或交給 IHttpClientFactory 管理。
+        //
+        //    ⚠ UseProxy = false：HttpClient 預設會讀 http_proxy / https_proxy 環境變數。
+        //    連 127.0.0.1 也會照樣走 proxy，結果本機假 API 反而連不上
+        //    （"Connection refused (127.0.0.1:9)" 就是 proxy 埠沒服務）。
+        //    打本機的服務時一定要記得關掉 proxy。
+        var handler = new SocketsHttpHandler { UseProxy = false };
+
+        var client = new HttpClient(handler, disposeHandler: true)
         {
-            BaseAddress = new Uri(BaseUrl),
+            BaseAddress = baseAddress,
             Timeout = TimeSpan.FromSeconds(15),
         };
 
         // 送出前加一個自訂標頭，模擬真實系統的認證／追蹤
         client.DefaultRequestHeaders.Add("User-Agent", "CSharpLearn/1.0");
+        return client;
+    }
 
+    private static async Task RunLessonAsync(HttpClient client, CancellationToken ct)
+    {
         await GetWithRetryAsync(client, "/posts/1", ct);
         await PostJsonAsync(client, ct);
         await DeserializeListAsync(client, ct);
@@ -140,7 +203,7 @@ public static class WebApiDemo
         Console.WriteLine("--- 4. 逾時與取消 ---");
 
         // ⚠ HttpClient.Timeout（預設 100 秒）和 CancellationToken 是兩種不同的逾時：
-        //    Timeout    給「我不管怎樣都不該等超過這裡」
+        //    Timeout    給「我不管怎樣都不管理等超過這裡」
         //    Token      給「使用者關掉視窗 / 應用程式關閉 / 上層要求停止」
         //    實務上兩者都要有。
 
@@ -148,8 +211,8 @@ public static class WebApiDemo
 
         try
         {
-            // 這個 API 在正式環境通常很快。用 1 秒的 token 示範「來不及讀完就放棄」。
-            await client.GetAsync("/posts/1", shortTimeout.Token);
+            // 本機假 API 會刻意延遲 5 秒，所以這裡必然逾時，能穩定示範取消行為。
+            await client.GetAsync("/posts/1?slow=1", shortTimeout.Token);
             Console.WriteLine("  讀取完成");
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -196,6 +259,177 @@ public static class WebApiDemo
         Console.WriteLine("    TaskCanceledException    逾時或取消（繼承自 OperationCanceledException）");
         Console.WriteLine("    OperationCanceledException  被取消");
         Console.WriteLine();
+    }
+}
+
+/// <summary>
+/// 程式內的假 JSONPlaceholder API。外部站台連不上時接手，讓範例離線也能跑完。
+///
+/// 為什麼值得寫這個：
+///   - HttpListener 是 BCL 內建的，不需要任何套件。
+///   - 可以驗證 HttpClient 那一側的程式碼完全正確 —— 換掉的是「對端」而不是「客戶端」。
+///   - 真實專案裡做整合測試就是這個套路（WireMock、TestServer 都同一個思路）。
+/// </summary>
+internal sealed class FakeJsonPlaceholder : IAsyncDisposable
+{
+    private readonly HttpListener _listener = new();
+
+    private FakeJsonPlaceholder(Uri baseAddress)
+    {
+        BaseAddress = baseAddress;
+    }
+
+    public Uri BaseAddress { get; }
+
+    /// <summary>在 127.0.0.1 上找一個可用的 port，開一個假 API，回傳它的控制物件。</summary>
+    public static FakeJsonPlaceholder Start()
+    {
+        var port = FindFreePort();
+        var baseAddress = new Uri($"http://127.0.0.1:{port}/");
+
+        var fake = new FakeJsonPlaceholder(baseAddress);
+        fake._listener.Prefixes.Add(baseAddress.ToString());
+        fake._listener.Start();
+
+        // 背景執行緒處理請求。BeginGetContext 是同步的，用 Task.Run 讓它不佔住主流程。
+        _ = Task.Run(() => fake.ServeAsync());
+
+        Console.WriteLine($"  本機假 API 已啟動: {baseAddress}");
+        Console.WriteLine();
+
+        return fake;
+    }
+
+    private static int FindFreePort()
+    {
+        // 綁一個 port 0 讓 OS 挑一個沒人用的，然後立刻放掉。
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private async Task ServeAsync()
+    {
+        while (_listener.IsListening)
+        {
+            HttpListenerContext context;
+
+            try
+            {
+                context = await _listener.GetContextAsync();
+            }
+            catch (HttpListenerException)
+            {
+                return;   // listener 已關閉
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+
+            try
+            {
+                await HandleAsync(context);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  [fake api] 處理失敗: {ex.Message}");
+            }
+        }
+    }
+
+    private static async Task HandleAsync(HttpListenerContext context)
+    {
+        var path = context.Request.Url?.AbsolutePath ?? "/";
+        var query = context.Request.Url?.Query ?? string.Empty;
+
+        // /posts/1?slow=1 → 刻意延遲 5 秒，用來示範 HttpClient 的逾時與取消。
+        if (query.Contains("slow=1", StringComparison.Ordinal))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+
+        if (path == "/posts" && context.Request.HttpMethod == "POST")
+        {
+            using var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8);
+            var body = await reader.ReadToEndAsync();
+
+            var echo = new Post
+            {
+                Id = 101,
+                UserId = 1,
+                Title = "csharp_learn",
+                Body = body,
+            };
+
+            await WriteJsonAsync(context, HttpStatusCode.Created, echo);
+            return;
+        }
+
+        if (path.StartsWith("/posts/", StringComparison.Ordinal))
+        {
+            var idText = path["/posts/".Length..];
+            var id = int.TryParse(idText, out var parsed) ? parsed : 0;
+
+            var post = new Post
+            {
+                Id = id,
+                UserId = 1,
+                Title = $"sunt aut facere {id}",
+                Body = "quia et suscipit suscipit recusandae consequuntur expedita et cum",
+            };
+
+            await WriteJsonAsync(context, HttpStatusCode.OK, post);
+            return;
+        }
+
+        if (path == "/posts")
+        {
+            var list = Enumerable.Range(1, 3).Select(i => new Post
+            {
+                Id = i,
+                UserId = 1,
+                Title = $"sunt aut facere repellat provisione sed quia {i}",
+                Body = "quia et suscipit suscipit recusandae consequuntur expedita et cum",
+            }).ToList();
+
+            await WriteJsonAsync(context, HttpStatusCode.OK, list);
+            return;
+        }
+
+        // 其餘一律 404 —— 讓第 5 節的錯誤處理示範有東西可以印。
+        context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+        var bytes = Encoding.UTF8.GetBytes("{\"error\":\"not found\"}");
+        context.Response.ContentType = "application/json";
+        context.Response.ContentLength64 = bytes.Length;
+        await context.Response.OutputStream.WriteAsync(bytes);
+        context.Response.Close();
+    }
+
+    private static async Task WriteJsonAsync(HttpListenerContext context, HttpStatusCode status, object payload)
+    {
+        var json = JsonSerializer.Serialize(payload);
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        context.Response.StatusCode = (int)status;
+        context.Response.ContentType = "application/json; charset=utf-8";
+        context.Response.ContentLength64 = bytes.Length;
+
+        await context.Response.OutputStream.WriteAsync(bytes);
+        context.Response.Close();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        if (_listener.IsListening)
+        {
+            _listener.Stop();
+            _listener.Close();
+        }
+
+        return ValueTask.CompletedTask;
     }
 }
 

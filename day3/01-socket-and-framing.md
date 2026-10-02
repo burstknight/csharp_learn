@@ -3,7 +3,7 @@
 > 範例：[`EchoServerDemo.cs`](EchoServerDemo.cs)
 > 跑法：`dotnet run --project day3 -- echo`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。範例在 127.0.0.1 的隨機 port 上開 server 和 client，不需要外部設備。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。範例在 127.0.0.1 的隨機 port 上開 server 和 client，不需要外部設備。
 
 這是底層通訊最重要的一節。**會寫 Socket 不難，寫對 framing 才是分水嶺。**
 
@@ -272,7 +272,7 @@ while (true)
 
 高頻讀取時，重用 buffer 是最容易拿到效能改善的地方之一（也更少 GC 壓力）。
 
-用 `ArrayPool<byte>` 可以更进一步，但**先確認你真的需要** —— 收尾要 `Return`，忘記 return 會讓 pool 枯竭。
+用 `ArrayPool<byte>` 可以更進一步，但**先確認你真的需要** —— 收尾要 `Return`，忘記 return 會讓 pool 枯竭。
 
 ---
 

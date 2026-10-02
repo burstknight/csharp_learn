@@ -12,7 +12,7 @@ namespace CSharpLearn.Day3;
 // 這支範例在「同一個 process」裡同時開 server 和 client，用 127.0.0.1 的隨機 port，
 // 不需要外部設備，離線可跑。跑完自動結束。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
 
 public static class EchoServerDemo
 {
@@ -89,16 +89,48 @@ public static class EchoServerDemo
         }
     }
 
-    /// <summary>第一段：不管訊息邊界，把讀到的 bytes 原樣印出來。</summary>
+    /// <summary>
+    /// 第一段：不管訊息邊界，把讀到的每一片 bytes 原樣印出來。
+    ///
+    /// 循環讀到「對端關閉」為止。重點是讓讀取次數由 TCP 分段決定，
+    /// 而不是由「送了幾則訊息」決定。
+    /// </summary>
     private static async Task DumpRawAsync(NetworkStream stream, CancellationToken ct)
     {
         var buffer = new byte[64];
-        var read = await stream.ReadAsync(buffer, ct);
+        var total = 0;
+        var reads = 0;
 
-        Console.WriteLine($"  [server] 一次 ReadAsync 收到 {read} bytes");
-        Console.WriteLine($"  [server] hex   : {Convert.ToHexString(buffer.AsSpan(0, read))}");
-        Console.WriteLine($"  [server] 當成文字: 「{Encoding.UTF8.GetString(buffer, 0, read)}」");
+        while (!ct.IsCancellationRequested)
+        {
+            int read;
+
+            try
+            {
+                read = await stream.ReadAsync(buffer, ct);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or IOException)
+            {
+                break;
+            }
+
+            if (read == 0)
+            {
+                // 對端做 Shutdown(Send)，代表「送完了」。這是 0，不是例外。
+                break;
+            }
+
+            reads++;
+            total += read;
+
+            Console.WriteLine($"  [server] 第 {reads} 次 ReadAsync 收到 {read} bytes");
+            Console.WriteLine($"  [server] hex   : {Convert.ToHexString(buffer.AsSpan(0, read))}");
+            Console.WriteLine($"  [server] 當成文字: 「{Encoding.UTF8.GetString(buffer, 0, read)}」");
+        }
+
+        Console.WriteLine($"  [server] 總共讀了 {reads} 次、共 {total} bytes");
         Console.WriteLine("  → 收到的長度取決於 TCP 怎麼分段，無法對應到任何一則訊息的邊界。");
+        Console.WriteLine("  → 應用層如果沒有 framing，就永遠不知道『一則訊息』到哪裡為止。");
     }
 
     /// <summary>第二段：正確的 framing —— 先讀長度，再讀那麼多內容。</summary>
@@ -141,23 +173,38 @@ public static class EchoServerDemo
         await using var stream = client.GetStream();
 
         Console.WriteLine($"  [client] 已連線到 127.0.0.1:{port}");
+        Console.WriteLine();
 
-        string[] messages = ["AAA", "BB", "CCCCC"];
+        string[] messages = ["AAA", "BB", "CCCCC", "DD"];
 
-        foreach (var message in messages)
+        // 前兩則中間停一下，讓伺服器來得及分次收到。
+        for (var i = 0; i < 2; i++)
         {
-            await stream.WriteAsync(Encoding.UTF8.GetBytes(message), ct);
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(messages[i]), ct);
             await stream.FlushAsync(ct);
-
-            // 中間停一下，讓伺服器有機會「分次收到」
-            await Task.Delay(30, ct);
+            await Task.Delay(80, ct);
         }
 
-        await Task.Delay(200, ct);
+        // 剩下兩則「背對背」送，中間完全不間隔。
+        // 伺服器很可能一次 ReadAsync 就把它們一起讀走 —— 這正是沒有 framing 的麻煩。
+        foreach (var message in messages[2..])
+        {
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(message), ct);
+        }
 
+        await stream.FlushAsync(ct);
+
+        // 明確告訴對端「我送完了」：送方向關閉，之後對端會收到 read == 0，
+        // 而不是等到逾時。沒有 framing 時，這是應用層唯一能用的訊息結束訊號。
+        client.Client.Shutdown(SocketShutdown.Send);
+        Console.WriteLine("  [client] 已送出 4 則訊息並 Shutdown(Send)，等伺服器收完");
+
+        // 伺服器不會 echo，所以這裡一直讀到 0（連線關閉）為止。
+        // 讀到的 bytes 必然是 0 —— 這段迴圈的目的不是拿資料，而是「等伺服器收完並關閉」。
         var buffer = new byte[64];
         var read = await stream.ReadAsync(buffer, ct);
-        Console.WriteLine($"  [client] 一次 read 拿到 {read} bytes: 「{Encoding.UTF8.GetString(buffer, 0, read)}」");
+        Console.WriteLine($"  [client] 讀到 {read} bytes（0 代表伺服器已收完並關閉連線）");
+        Console.WriteLine("  → 上面伺服器讀到的 chunk 邊界跟這 4 則訊息的邊界完全無關。");
         Console.WriteLine("  → 收在一起的資料長度跟任何一則訊息都不對應，也無法知道哪裡是分界。");
         Console.WriteLine("  → 這就是『粘包』。");
         Console.WriteLine();
