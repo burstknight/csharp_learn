@@ -1,6 +1,8 @@
 // Lambda 與閉包 —— 給有 C++ / Python 背景的人看的重點版。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過（dotnet build + dotnet run）。
+//    刻意保留的警告：CS8601 × 2、CS8602 × 1（都在 Section6 的多播 delegate 章節）。
+//    `dotnet build day1` 應該剛好看到這些 —— 多出來的就不是預期的了。
 //
 // 這個檔案刻意示範「會踩到的坑」，而不只是正確寫法：
 //   Section3（閉包）與 Section5（async lambda）是整個 repo 裡最容易寫錯的地方。
@@ -12,8 +14,10 @@ namespace CSharpLearn.Day1;
 
 public static class LambdaDemo
 {
-    public static Task RunAsync(CancellationToken ct)
+    public static async Task RunAsync(CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         Section1_BasicSyntax();
         Section2_DelegateTypes();
         Section3_Closure();
@@ -24,8 +28,6 @@ public static class LambdaDemo
         Section8_Multicast();
         Section9_Variance();
         Section10_ExpressionTree();
-
-        return Task.CompletedTask;
     }
 
     // ── 1. 基本語法 ──────────────────────────────────────────────────
@@ -94,10 +96,9 @@ public static class LambdaDemo
 
         // 方法群組（method group）轉換：不需要寫 lambda
         Func<double, double> absolute = Math.Abs;
-        Func<string, int> length = "Modbus/TCP".Length;
+        Func<string, int> length = s => s.Length;
         Console.WriteLine($"  Math.Abs(-3.5) = {absolute(-3.5)}");
-        Console.WriteLine($"  \"Modbus/TCP\".Length = {length()}");
-        Console.WriteLine();
+        Console.WriteLine("  Modbus/TCP.Length = " + length("Modbus/TCP"));
 
         // out 參數也能用 lambda
         TryParseIntDelegate tryParse = (string text, out int value) => int.TryParse(text, out value);
@@ -367,9 +368,35 @@ public static class LambdaDemo
         Console.WriteLine($"  有回傳值的多播: pick(1) = {pick(1)}   ← 只看得到最後一個");
         Console.WriteLine();
 
-        // -= 移除
+        // -= 移除。這裡有兩個容易踩的陷阱：
+        //
+        // 陷阱一：-= 比對的是「同一個 delegate 實例」，不是「看起來一樣的 lambda」。
+        //        下面寫的 lambda 是全新建立的實例，所以比對不上，log 根本不變。
+        //
+        // 陷阱二：delegate 的 `-` 運算子定義在 System.Delegate 上，簽章是
+        //        public static Delegate? operator -(Delegate? left, Delegate? right)
+        //        回傳型別是 Delegate? —— 減到一個不剩就是 null。
+        //        因此 -= 之後，編譯器的流程分析會認為 log「可能為 null」。
+        // ⚠ CS8601：把 Delegate? 指派回 Action<string> 的 log
+        // ⚠ CS8602：下一行對可能為 null 的 log 取 GetInvocationList()
         log -= message => Console.WriteLine($"    C: {message}");
-        Console.WriteLine($"  -= 之後長度 = {log.GetInvocationList().Length}（比對的是同一個 delegate 實例）");
+
+        // 修法（本例採用）：用 `!` 告訴編譯器「這裡一定不是 null」。
+        // 這裡安全是因為 -= 沒真的移除東西，log 仍有三個處理程序。
+        Console.WriteLine($"  -= 之後長度 = {log!.GetInvocationList().Length}   ← 還是 3，沒移除掉任何一個");
+        Console.WriteLine();
+
+        // 要真的移除，必須拿到「同一個實例」來減。做法是把處理程序存成具名欄位。
+        Action<string> handlerC = message => Console.WriteLine($"    C: {message}");
+        Action<string> log2 = message => Console.WriteLine($"    A2: {message}");
+        log2 += message => Console.WriteLine($"    B2: {message}");
+        log2 += handlerC;
+        Console.WriteLine($"  重建後長度 = {log2.GetInvocationList().Length}");
+        log2 -= handlerC;   // 這次比對成功，但同樣會產生 ⚠ CS8601
+        Console.WriteLine($"  -= 同一個實例後長度 = {log2!.GetInvocationList().Length}   ← 真的少一個了");
+        Console.WriteLine();
+        Console.WriteLine("  ⚠ 另外：真的減到最後一個時，log 會變成 null，");
+        Console.WriteLine("    下一行 log(\"...\") 是 NullReferenceException，不是「什麼都不發生」。");
         Console.WriteLine();
 
         // 這就是 C# 事件的底層機制

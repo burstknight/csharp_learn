@@ -10,8 +10,9 @@ namespace CSharpLearn.Day1;
 // ⚠ 重要：這支範例刻意保留了幾處會產生編譯警告的寫法（反例），
 //    每一處上面都有標明警告代碼的註解。請照著 01-csharp-syntax.md 把它們修掉。
 //
-// ⚠ 本檔案未經編譯驗證（撰寫環境沒有 .NET SDK）。第一次 build 看到的警告數量
-//    可能比這裡標註的多，先讀懂再改。
+// ✅ 本檔案已用 .NET 10 SDK 編譯並實跑驗證過。
+//    刻意保留的警告：CS8600（第 102 行）、CS8602（第 113 行）。
+//    `dotnet build day1` 應該剛好看到這 2 個警告 —— 多出來的就不是預期的了。
 
 /// <summary>C# 特有語法重點。</summary>
 public static class SyntaxDemo

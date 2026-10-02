@@ -153,7 +153,7 @@ var invalid = new Averager<string>();   // ❌ 編譯期就失敗，不是執行
 | --- | --- |
 | `where T : class` | T 必須是參考型別 |
 | `where T : struct` | T 必須是非 null 的值型別 |
-| `where T : new()` | T 必須有无參數建構式 |
+| `where T : new()` | T 必須有無參數建構式 |
 | `where T : SomeBase` | 繼承限制 |
 | `where T : ISomeInterface` | 介面限制 |
 | `where T : notnull` | T 不能是 null |

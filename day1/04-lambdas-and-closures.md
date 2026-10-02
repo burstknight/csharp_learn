@@ -3,7 +3,7 @@
 > 範例：[`LambdaDemo.cs`](LambdaDemo.cs)
 > 跑法：`dotnet run --project day1 -- lambda`
 
-⚠ **未經編譯驗證**（撰寫環境沒有 .NET SDK）。
+✅ 已用 .NET 10 SDK 編譯並實跑驗證過。刻意保留 CS8601 / CS8602 教學反例。
 
 這章是專門為「已經會 C++/Python 的 lambda，但不熟 C# 的 lambda」寫的。**兩個語言的 lambda 概念很像，但 C# 有一個根本性的差異，踩到會很痛。**
 

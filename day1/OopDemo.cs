@@ -63,7 +63,23 @@ public static class OopDemo
 
         Console.WriteLine($"  double 平均 = {doubles.Average():F2}");
 
-        var ints = new Averager<int> { 10, 20, 30, 40 };
+        // 注意：這裡「不能」寫成 new Averager<int> { 10, 20, 30, 40 }。
+        // 集合初始化式 { ... } 編譯器會去對應 IEnumerable.Add(T)，
+        // 所以型別必須「實作 IEnumerable<T>（或非泛型 IEnumerable）」才會有 Add()。
+        // Averager<T> 只是個一般的泛型類別，沒有實作 IEnumerable<T>，因此：
+        // ⚠ CS1922 無法使用集合初始設定式來初始設定類型 'Averager<int>'
+        //     （因為它未實作 'System.Collections.IEnumerable'）
+        //
+        // 兩種修法：
+        //   (a) 老實呼叫 Add()，像下面這樣。
+        //   (b) 讓 Averager<T> 實作 IEnumerable<T>，就能用 { ... }。
+        //       這是很好的取捨點：只是「收集樣本算平均」的容器，本來就沒必要
+        //       假裝成集合；硬實作 IEnumerable 反而會讓呼叫端以為可以拿它去 foreach。
+        var ints = new Averager<int>();
+        ints.Add(10);
+        ints.Add(20);
+        ints.Add(30);
+        ints.Add(40);
         Console.WriteLine($"  int 平均    = {ints.Average():F2}");
 
         // 沒有 where T : INumber<T> 的話，下面這行會編譯失敗（operator + 不存在於未知的 T）：
@@ -99,6 +115,11 @@ public static class OopDemo
         Console.WriteLine($"  全部名稱: {string.Join(", ", hub.Names)}");
         Console.WriteLine($"  依單位分組:");
 
+        // 這裡的 GroupBy 簽章是 GroupBy(Func<ISensor, string> keySelector)，
+        // 也就是「把選取器當成一個值傳進去」，所以呼叫端要寫 hub.GroupBy(s => s.Unit)。
+        // 對照：Enumerable.GroupBy(sensors, s => s.Unit) 是 LINQ 的靜態擴充方法寫法。
+        // 如果簽章誤寫成 GroupBy(string keySelector)，編譯器就會把 lambda 當成
+        // 已經算好的字串，報 ⚠ CS1660（無法將 Lambda 運算式轉換成 'string'）。
         foreach (var group in hub.GroupBy(s => s.Unit))
         {
             Console.WriteLine($"    {group.Key}: {group.Count()} 個");
@@ -210,7 +231,25 @@ internal sealed class Averager<T> where T : INumber<T>
             sum += sample;
         }
 
-        return sum / T.FromInt32(_samples.Count);
+        // 除以樣本數。
+        //
+        // ⚠ 常見錯誤：T.FromInt32(_samples.Count) 會得到 CS0704
+        //   「無法在 'T' 中進行非虛擬的成員查尋，因為其為型別參數」。
+        //
+        //   原因有兩層：
+        //   1. .NET 10 的 INumberBase<T> 已經沒有 FromInt32 這個成員了。
+        //      「從某個型別轉換成 T」的入口現在是泛型的 CreateChecked<TOther>(TOther)。
+        //   2. 對型別參數 T 做成員查找時，編譯器只認得 where T : ... 列出來的約束。
+        //      找不到就是找不到，一律回報 CS0704（就算你寫的是一個根本沒有的名稱，
+        //      也會得到同一個錯誤，而不是 CS1061「沒有這個成員」）。
+        //
+        //   能跨型別呼叫的 static 成員只有約束介面上宣告的那些：
+        //   Zero、One、Abs、MultiplyAddEstimate、Parse、TryParse…
+        //   泛型數學（.NET 7+）就是靠這個機制，讓數學運算也能 virtual dispatch。
+        //
+        // 修法：CreateChecked<int>(n) 會在執行期依 T 決定用哪種轉換。
+        // int / double / decimal / float 都能用同一份 Averager<T>。
+        return sum / T.CreateChecked<int>(_samples.Count);
     }
 }
 
@@ -278,7 +317,16 @@ internal sealed class SensorHub
         }
     }
 
-    /// <summary>yield return 讓這個方法變成延遲（lazy）求值的 iterator，不必真的建中間集合。</summary>
-    public IEnumerable<IGrouping<string, ISensor>> GroupBy(string keySelector) =>
-        _sensors.GroupBy(s => keySelector(s));
+    /// <summary>
+    /// yield return 讓這個方法變成延遲（lazy）求值的 iterator，不必真的建中間集合。
+    ///
+    /// 參數型別是 Func&lt;ISensor, string&gt;，不是 string —— 這是本節要記住的重點：
+    /// 「把選取器當值傳進去」和「把選取好的值傳進去」是兩件事。
+    /// 誤寫成 GroupBy(string keySelector) 會得到 ⚠ CS1660（lambda 不能轉成 string），
+    /// 誤寫成 GroupBy(Func&lt;ISensor, string&gt; keySelector) => keySelector(s)
+    /// 這種「把函式當值呼叫」的寫法則會得到 ⚠ CS0149（必須是方法名稱），
+    /// 因為 keySelector 是一個 delegate 欄位，要呼叫它得寫 keySelector(s)。
+    /// </summary>
+    public IEnumerable<IGrouping<string, ISensor>> GroupBy(Func<ISensor, string> keySelector) =>
+        _sensors.GroupBy(keySelector);
 }
